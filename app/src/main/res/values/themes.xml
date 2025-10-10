@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TaskMaster" parent="Theme.AppCompat.Light.NoActionBar" />
+    
+    <!-- Launcher icon colors -->
+    <color name="ic_launcher_background">#3DDC84</color>
+    <color name="ic_launcher_foreground">#FFFFFF</color>
+</resources>
