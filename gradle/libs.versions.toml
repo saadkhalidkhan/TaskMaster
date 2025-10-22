@@ -32,20 +32,14 @@ paging = "3.2.1"
 pagingCompose = "3.2.1"
 googleServices = "4.4.0"
 crashlytics = "2.9.9"
-biometric = "1.1.0"
 lottie = "6.1.0"
-accompanist = "0.32.0"
 workRuntimeKtx = "2.9.0"
 
 [libraries]
-androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version = "1.0.1" }
 androidx-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "ktx" }
 androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
-androidx-lifecycle-service = { module = "androidx.lifecycle:lifecycle-service", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
-androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "workRuntimeKtx" }
-androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 android-material = { module = "com.google.android.material:material", version.ref = "material" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
@@ -65,18 +59,13 @@ material = { group = "androidx.compose.material", name = "material" }
 material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "material3" }
 ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
 ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
-firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebase-bom" }
-firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics-ktx" }
-firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics-ktx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "dataStore" }
 coil-bom = { group = "io.coil-kt", name = "coil-bom", version.ref = "coil-bom" }
 coil = { group = "io.coil-kt", name = "coil-compose" }
 test-junit = { group = "junit", name = "junit", version.ref = "testJunit" }
 androidx-test-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestJunit" }
 androidx-test-espresso = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxTestEspresso" }
-androidx-biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
 lottie = { module = "com.airbnb.android:lottie-compose", version.ref = "lottie" }
-google-accompanist = { group = "com.google.accompanist", name = "accompanist-permissions", version.ref = "accompanist" }
 paging-runtime = { group = "androidx.paging", name = "paging-runtime", version.ref = "paging" }
 paging-compose = { group = "androidx.paging", name = "paging-compose", version.ref = "pagingCompose" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
