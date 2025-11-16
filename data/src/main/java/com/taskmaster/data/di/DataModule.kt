@@ -1,3 +1,7 @@
+/**
+ * @author Saad Khan
+ * @date January 2025
+ */
 package com.taskmaster.data.di
 
 import com.taskmaster.core.domain.repository.AuthRepository

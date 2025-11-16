@@ -1,3 +1,7 @@
+/**
+ * @author Saad Khan
+ * @date January 2025
+ */
 package com.taskmaster.core.domain.model
 
 import kotlinx.serialization.Serializable

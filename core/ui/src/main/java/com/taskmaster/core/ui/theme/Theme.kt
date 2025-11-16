@@ -1,3 +1,7 @@
+/**
+ * @author Saad Khan
+ * @date January 2025
+ */
 package com.taskmaster.core.ui.theme
 
 import android.app.Activity

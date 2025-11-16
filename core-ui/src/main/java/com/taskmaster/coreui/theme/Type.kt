@@ -1,3 +1,7 @@
+/**
+ * @author Saad Khan
+ * @date January 2025
+ */
 package com.taskmaster.coreui.theme
 
 import androidx.compose.material3.Typography
