@@ -29,11 +29,8 @@ include(":data")
 
 // Feature modules
 include(":feature:auth")
-include(":feature:profile")
 include(":feature:tasks")
-include(":feature:dashboard")
 
 // Shared modules
 include(":shared:analytics")
 include(":shared:utils")
-include(":shared:theme")
