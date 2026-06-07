@@ -60,14 +60,14 @@ This project follows **Clean Architecture** principles with a **modular structur
 - **Reactive Programming**: Kotlin Coroutines and Flow
 - **Local Database**: Room for offline data persistence
 - **Network Layer**: Retrofit for API communication
-- **Analytics**: Firebase Analytics integration
-- **Crash Reporting**: Firebase Crashlytics
+- **Analytics**: Firebase Analytics integration (optional, requires `google-services.json`)
+- **Crash Reporting**: Firebase Crashlytics (optional, requires `google-services.json`)
 - **Testing**: Unit and UI tests
 
 ## 🏛️ Project Structure
 
 ```
-ModularArchitecture/
+TaskMaster/
 ├── app/                           # Main application module
 ├── core/                          # Core domain layer
 │   ├── domain/
@@ -80,6 +80,7 @@ ModularArchitecture/
 ├── core-ui/                       # Shared UI components
 │   ├── theme/                     # Material Design theme
 │   └── components/                # Reusable UI components
+├── data/                          # Repository implementations
 ├── networking/                    # Network layer
 │   ├── api/                       # API interfaces
 │   ├── interceptor/               # Network interceptors
@@ -141,25 +142,27 @@ ModularArchitecture/
 - **KSP**: Kotlin Symbol Processing
 - **ProGuard**: Code obfuscation and optimization
 
-### **Firebase Integration**
+### **Firebase Integration** (Optional)
 - **Firebase Analytics**: User behavior tracking
 - **Firebase Crashlytics**: Crash reporting
 - **Google Services**: Firebase configuration
+- Firebase plugins are disabled by default until `google-services.json` is added to the `app/` module
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Android Studio**: Arctic Fox or later
+- **Android Studio**: Hedgehog (2023.1.1) or later
 - **JDK**: 17 or later
 - **Android SDK**: API 24+ (Android 7.0)
-- **Kotlin**: 1.9.0+
+- **Kotlin**: 1.9.25
+- **Gradle**: 8.7
 
 ### Installation
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd ModularArchitecture
+   git clone https://github.com/saadkhalidkhan/TaskMaster.git
+   cd TaskMaster
    ```
 
 2. **Open in Android Studio**
@@ -274,6 +277,7 @@ Each module has its own `build.gradle.kts` with:
 ### **Android Versions**
 - **Minimum**: Android 7.0 (API 24)
 - **Target**: Android 14 (API 34)
+- **Compile**: Android 14 (API 34)
 - **Compatibility**: Backward compatibility maintained
 
 ## 🚀 Deployment
