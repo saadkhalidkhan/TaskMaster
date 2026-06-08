@@ -5,6 +5,7 @@
 package com.taskmaster.data.repository
 
 import com.taskmaster.core.common.Result
+import com.taskmaster.core.data.local.TokenManager
 import com.taskmaster.core.domain.model.Task
 import com.taskmaster.core.domain.model.TaskCategory
 import com.taskmaster.core.domain.model.TaskPriority
@@ -18,6 +19,8 @@ import com.taskmaster.database.entity.TaskEntity
 import com.taskmaster.database.entity.UserEntity
 import com.taskmaster.networking.api.TaskMasterApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,7 +28,8 @@ import javax.inject.Singleton
 @Singleton
 class TaskRepositoryImpl @Inject constructor(
     private val taskDao: TaskDao,
-    private val taskMasterApi: TaskMasterApi
+    private val taskMasterApi: TaskMasterApi,
+    private val tokenManager: TokenManager
 ) : TaskRepository {
 
     override suspend fun getTasks(page: Int, pageSize: Int): Result<List<Task>> {
@@ -37,7 +41,17 @@ class TaskRepositoryImpl @Inject constructor(
                 Result.Error(response.message ?: "Failed to fetch tasks")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            getLocalTasksOrError(e.message ?: "Network error")
+        }
+    }
+
+    private suspend fun getLocalTasksOrError(message: String): Result<List<Task>> {
+        val userId = tokenManager.getUserId() ?: return Result.Error(message)
+        return try {
+            val tasks = taskDao.getTasksForUser(userId).first().map { it.toDomain() }
+            Result.Success(tasks)
+        } catch (e: Exception) {
+            Result.Error(message)
         }
     }
 
@@ -75,7 +89,16 @@ class TaskRepositoryImpl @Inject constructor(
                 Result.Error(response.message ?: "Failed to create task")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            saveTaskLocally(task)
+        }
+    }
+
+    private suspend fun saveTaskLocally(task: Task): Result<Task> {
+        return try {
+            taskDao.insertTask(task.toEntity())
+            Result.Success(task)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Failed to save task locally")
         }
     }
 
@@ -103,7 +126,16 @@ class TaskRepositoryImpl @Inject constructor(
                 Result.Error(response.message ?: "Failed to update task")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            updateTaskLocally(task)
+        }
+    }
+
+    private suspend fun updateTaskLocally(task: Task): Result<Task> {
+        return try {
+            taskDao.updateTask(task.toEntity())
+            Result.Success(task)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Failed to update task locally")
         }
     }
 
@@ -188,7 +220,8 @@ class TaskRepositoryImpl @Inject constructor(
     }
 
     override fun observeTasks(): Flow<List<Task>> {
-        return taskDao.getTasksForUser("current_user_id").map { entities ->
+        val userId = tokenManager.getUserId() ?: return flowOf(emptyList())
+        return taskDao.getTasksForUser(userId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
@@ -217,7 +250,8 @@ class TaskRepositoryImpl @Inject constructor(
 @Singleton
 class AuthRepositoryImpl @Inject constructor(
     private val userDao: UserDao,
-    private val taskMasterApi: TaskMasterApi
+    private val taskMasterApi: TaskMasterApi,
+    private val tokenManager: TokenManager
 ) : AuthRepository {
 
     override suspend fun login(email: String, password: String): Result<User> {
@@ -227,15 +261,14 @@ class AuthRepositoryImpl @Inject constructor(
             )
             if (response.success) {
                 response.data?.let { user ->
-                    // Save user to local database
-                    userDao.insertUser(user.toEntity())
+                    persistUserSession(user)
                     Result.Success(user)
                 } ?: Result.Error("No data returned")
             } else {
                 Result.Error(response.message ?: "Failed to login")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            loginOffline(email, e.message ?: "Network error")
         }
     }
 
@@ -250,31 +283,26 @@ class AuthRepositoryImpl @Inject constructor(
             )
             if (response.success) {
                 response.data?.let { user ->
-                    // Save user to local database
-                    userDao.insertUser(user.toEntity())
+                    persistUserSession(user)
                     Result.Success(user)
                 } ?: Result.Error("No data returned")
             } else {
                 Result.Error(response.message ?: "Failed to register")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            registerOffline(name, email)
         }
     }
 
     override suspend fun logout(): Result<Unit> {
-        return try {
-            val response = taskMasterApi.logout()
-            if (response.success) {
-                // Clear local user data
-                // TODO: Implement token clearing
-                Result.Success(Unit)
-            } else {
-                Result.Error(response.message ?: "Failed to logout")
-            }
-        } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+        try {
+            taskMasterApi.logout()
+        } catch (_: Exception) {
+            // Clear local session even when the remote logout fails.
         }
+        tokenManager.getUserId()?.let { userDao.deleteUserById(it) }
+        tokenManager.clearSession()
+        return Result.Success(Unit)
     }
 
     override suspend fun refreshToken(): Result<String> {
@@ -335,8 +363,41 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun isLoggedIn(): Flow<Boolean> {
-        return userDao.getUserById("current_user_id").map { it != null }
+    override fun isLoggedIn(): Flow<Boolean> = tokenManager.isLoggedIn()
+
+    private suspend fun persistUserSession(user: User) {
+        userDao.insertUser(user.toEntity())
+        tokenManager.saveSession(
+            accessToken = "local_${user.userId}",
+            refreshToken = "refresh_${user.userId}",
+            userId = user.userId,
+            email = user.email
+        )
+    }
+
+    private suspend fun loginOffline(email: String, message: String): Result<User> {
+        val localUser = userDao.getUserByEmail(email)
+        return if (localUser != null) {
+            val user = localUser.toDomain()
+            persistUserSession(user)
+            Result.Success(user)
+        } else {
+            Result.Error(message)
+        }
+    }
+
+    private suspend fun registerOffline(name: String, email: String): Result<User> {
+        return if (userDao.getUserByEmail(email) != null) {
+            Result.Error("An account with this email already exists")
+        } else {
+            val user = User(
+                userId = java.util.UUID.randomUUID().toString(),
+                username = name,
+                email = email
+            )
+            persistUserSession(user)
+            Result.Success(user)
+        }
     }
 
     override suspend fun verifyEmail(token: String): Result<Unit> {
@@ -361,7 +422,12 @@ private fun Task.toEntity(): TaskEntity {
         title = title,
         description = description,
         dueDate = dueDate,
-        isCompleted = isCompleted
+        isCompleted = isCompleted,
+        priority = priority.name,
+        status = status.name,
+        category = category.name,
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }
 
@@ -372,7 +438,12 @@ private fun TaskEntity.toDomain(): Task {
         title = title,
         description = description,
         dueDate = dueDate,
-        isCompleted = isCompleted
+        isCompleted = isCompleted,
+        priority = runCatching { TaskPriority.valueOf(priority) }.getOrDefault(TaskPriority.MEDIUM),
+        status = runCatching { TaskStatus.valueOf(status) }.getOrDefault(TaskStatus.PENDING),
+        category = runCatching { TaskCategory.valueOf(category) }.getOrDefault(TaskCategory.PERSONAL),
+        createdAt = createdAt,
+        updatedAt = updatedAt
     )
 }
 

@@ -41,12 +41,6 @@ object NetworkingModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(): AuthInterceptor {
-        return AuthInterceptor()
-    }
-
-    @Provides
-    @Singleton
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
         authInterceptor: AuthInterceptor
