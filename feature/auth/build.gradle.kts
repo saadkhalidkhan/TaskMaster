@@ -42,7 +42,6 @@ android {
 dependencies {
     implementation(project(":core"))
     implementation(project(":core-ui"))
-    implementation(project(":networking"))
     
     implementation(libs.androidx.ktx)
     implementation(libs.androidx.activity.compose)
@@ -56,7 +55,6 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.hilt.android)
     implementation(libs.androidx.hilt.navigation.compose)
-    implementation(libs.androidx.datastore.preferences)
     implementation(libs.coroutines.core)
     
     ksp(libs.hilt.compiler)

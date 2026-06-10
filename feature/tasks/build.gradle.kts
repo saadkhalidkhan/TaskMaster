@@ -43,8 +43,6 @@ dependencies {
     implementation(project(":core"))
     implementation(project(":core-ui"))
     implementation(project(":shared:utils"))
-    implementation(project(":networking"))
-    implementation(project(":database"))
     
     implementation(libs.androidx.ktx)
     implementation(libs.androidx.activity.compose)
