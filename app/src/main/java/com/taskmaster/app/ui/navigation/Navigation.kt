@@ -15,12 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.taskmaster.app.navigation.Routes
 import com.taskmaster.app.ui.viewmodel.AppViewModel
-import com.taskmaster.feature.auth.ui.screen.LoginScreen
-import com.taskmaster.feature.auth.ui.screen.RegisterScreen
+import com.taskmaster.feature.auth.ui.navigation.authNavGraph
 import com.taskmaster.feature.tasks.ui.navigation.tasksNavGraph
 
 @Composable
@@ -45,31 +43,14 @@ fun TaskMasterNavHost(
         navController = navController,
         startDestination = if (isLoggedIn) Routes.TASK_LIST else Routes.LOGIN
     ) {
-        composable(Routes.LOGIN) {
-            LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate(Routes.TASK_LIST) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
-                    }
-                },
-                onNavigateToRegister = {
-                    navController.navigate(Routes.REGISTER)
+        authNavGraph(
+            navController = navController,
+            onAuthenticated = {
+                navController.navigate(Routes.TASK_LIST) {
+                    popUpTo(Routes.LOGIN) { inclusive = true }
                 }
-            )
-        }
-
-        composable(Routes.REGISTER) {
-            RegisterScreen(
-                onRegisterSuccess = {
-                    navController.navigate(Routes.TASK_LIST) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
-                    }
-                },
-                onNavigateToLogin = {
-                    navController.popBackStack()
-                }
-            )
-        }
+            }
+        )
 
         tasksNavGraph(
             navController = navController,

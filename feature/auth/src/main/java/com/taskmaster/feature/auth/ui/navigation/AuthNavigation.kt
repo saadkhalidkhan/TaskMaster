@@ -10,29 +10,27 @@ import androidx.navigation.compose.composable
 import com.taskmaster.feature.auth.ui.screen.LoginScreen
 import com.taskmaster.feature.auth.ui.screen.RegisterScreen
 
-fun NavGraphBuilder.authNavGraph(navController: NavHostController) {
-    composable("login") {
+object AuthRoutes {
+    const val LOGIN = "login"
+    const val REGISTER = "register"
+}
+
+fun NavGraphBuilder.authNavGraph(
+    navController: NavHostController,
+    onAuthenticated: () -> Unit
+) {
+    composable(AuthRoutes.LOGIN) {
         LoginScreen(
-            onLoginSuccess = {
-                // Navigate to main app
-                navController.navigate("main_graph") {
-                    popUpTo("auth_graph") { inclusive = true }
-                }
-            },
+            onLoginSuccess = onAuthenticated,
             onNavigateToRegister = {
-                navController.navigate("register")
+                navController.navigate(AuthRoutes.REGISTER)
             }
         )
     }
-    
-    composable("register") {
+
+    composable(AuthRoutes.REGISTER) {
         RegisterScreen(
-            onRegisterSuccess = {
-                // Navigate to main app
-                navController.navigate("main_graph") {
-                    popUpTo("auth_graph") { inclusive = true }
-                }
-            },
+            onRegisterSuccess = onAuthenticated,
             onNavigateToLogin = {
                 navController.popBackStack()
             }
