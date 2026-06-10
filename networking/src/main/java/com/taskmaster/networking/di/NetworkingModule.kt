@@ -4,6 +4,7 @@
  */
 package com.taskmaster.networking.di
 
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.taskmaster.networking.api.TaskMasterApi
 import com.taskmaster.networking.interceptor.AuthInterceptor
 import dagger.Module
@@ -11,10 +12,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
@@ -28,6 +29,8 @@ object NetworkingModule {
         return Json {
             ignoreUnknownKeys = true
             coerceInputValues = true
+            isLenient = true
+            encodeDefaults = true
         }
     }
 
@@ -56,11 +59,12 @@ object NetworkingModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+    fun provideRetrofit(okHttpClient: OkHttpClient, json: Json): Retrofit {
+        val contentType = "application/json".toMediaType()
         return Retrofit.Builder()
-            .baseUrl("https://api.taskmaster.com/") // Replace with your actual API base URL
+            .baseUrl("https://api.taskmaster.com/")
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(json.asConverterFactory(contentType))
             .build()
     }
 

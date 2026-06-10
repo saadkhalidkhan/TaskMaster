@@ -41,7 +41,6 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.retrofit)
     implementation(libs.retrofit2.kotlinx.serialization.converter)
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation(libs.okhttp)
     implementation(libs.logging.interceptor)
     implementation(libs.hilt.android)
