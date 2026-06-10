@@ -41,28 +41,17 @@ class TaskListViewModel @Inject constructor(
     }
 
     private fun loadTasks() {
-        val userId = tokenManager.getUserId()
-        if (userId.isNullOrBlank()) {
+        if (tokenManager.getUserId().isNullOrBlank()) {
             _error.value = "Not logged in"
             return
         }
 
         viewModelScope.launch {
-            taskUseCases.getTasksForUser(userId)
-                .collectLatest { result ->
-                    when (result) {
-                        is Result.Loading -> _isLoading.value = true
-                        is Result.Success -> {
-                            _tasks.value = result.data ?: emptyList()
-                            _isLoading.value = false
-                            _error.value = null
-                        }
-                        is Result.Error -> {
-                            _error.value = result.message
-                            _isLoading.value = false
-                        }
-                    }
-                }
+            taskUseCases.observeUserTasks().collectLatest { tasks ->
+                _tasks.value = tasks
+                _isLoading.value = false
+                _error.value = null
+            }
         }
     }
 
@@ -92,18 +81,13 @@ class TaskDetailViewModel @Inject constructor(
         _isLoading.value = true
         _error.value = null
         viewModelScope.launch {
-            taskUseCases.getTaskById(taskId).collectLatest { result ->
-                when (result) {
-                    is Result.Loading -> _isLoading.value = true
-                    is Result.Success -> {
-                        _task.value = result.data
-                        _isLoading.value = false
-                        _error.value = null
-                    }
-                    is Result.Error -> {
-                        _error.value = result.message
-                        _isLoading.value = false
-                    }
+            taskUseCases.observeTaskById(taskId).collectLatest { task ->
+                _task.value = task
+                _isLoading.value = false
+                if (task == null) {
+                    _error.value = "Task not found"
+                } else {
+                    _error.value = null
                 }
             }
         }
@@ -143,24 +127,15 @@ class CreateEditTaskViewModel @Inject constructor(
         if (taskId != null) {
             _isLoading.value = true
             viewModelScope.launch {
-                taskUseCases.getTaskById(taskId).collectLatest { result ->
-                    when (result) {
-                        is Result.Loading -> _isLoading.value = true
-                        is Result.Success -> {
-                            result.data?.let { task ->
-                                _title.value = task.title
-                                _description.value = task.description
-                                _dueDate.value = task.dueDate
-                                _isCompleted.value = task.isCompleted
-                            }
-                            _isLoading.value = false
-                            _error.value = null
-                        }
-                        is Result.Error -> {
-                            _error.value = result.message
-                            _isLoading.value = false
-                        }
+                taskUseCases.observeTaskById(taskId).collectLatest { task ->
+                    task?.let {
+                        _title.value = it.title
+                        _description.value = it.description
+                        _dueDate.value = it.dueDate
+                        _isCompleted.value = it.isCompleted
                     }
+                    _isLoading.value = false
+                    _error.value = null
                 }
             }
         } else {

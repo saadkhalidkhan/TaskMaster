@@ -85,8 +85,37 @@ class GetTasksByDateRangeUseCase @Inject constructor(
 class ObserveTasksUseCase @Inject constructor(
     private val taskRepository: TaskRepository
 ) {
-    operator fun invoke(): Flow<List<Task>> = 
+    operator fun invoke(): Flow<List<Task>> =
         taskRepository.observeTasks()
+}
+
+class ObserveUserTasksUseCase @Inject constructor(
+    private val taskRepository: TaskRepository
+) {
+    operator fun invoke(): Flow<List<Task>> =
+        taskRepository.observeTasks()
+}
+
+class ObserveTaskByIdUseCase @Inject constructor(
+    private val taskRepository: TaskRepository
+) {
+    operator fun invoke(taskId: Int): Flow<Task?> =
+        taskRepository.observeTasks().map { tasks ->
+            tasks.find { it.taskId == taskId }
+        }
+}
+
+class SaveTaskUseCase @Inject constructor(
+    private val createTaskUseCase: CreateTaskUseCase,
+    private val updateTaskUseCase: UpdateTaskUseCase
+) {
+    suspend operator fun invoke(task: Task): Result<Task> {
+        return if (task.taskId == 0) {
+            createTaskUseCase(task)
+        } else {
+            updateTaskUseCase(task)
+        }
+    }
 }
 
 class GetTaskStatisticsUseCase @Inject constructor(
@@ -195,6 +224,9 @@ class TaskUseCases @Inject constructor(
     private val searchTasksUseCase: SearchTasksUseCase,
     private val getTasksByDateRangeUseCase: GetTasksByDateRangeUseCase,
     private val observeTasksUseCase: ObserveTasksUseCase,
+    private val observeUserTasksUseCase: ObserveUserTasksUseCase,
+    private val observeTaskByIdUseCase: ObserveTaskByIdUseCase,
+    private val saveTaskUseCase: SaveTaskUseCase,
     private val getTaskStatisticsUseCase: GetTaskStatisticsUseCase
 ) {
     suspend fun getTasks(page: Int = 1, pageSize: Int = 20) = getTasksUseCase(page, pageSize)
@@ -208,26 +240,8 @@ class TaskUseCases @Inject constructor(
     suspend fun searchTasks(query: String) = searchTasksUseCase(query)
     suspend fun getTasksByDateRange(startDate: Long, endDate: Long) = getTasksByDateRangeUseCase(startDate, endDate)
     fun observeTasks(): Flow<List<Task>> = observeTasksUseCase()
+    fun observeUserTasks(): Flow<List<Task>> = observeUserTasksUseCase()
+    fun observeTaskById(taskId: Int): Flow<Task?> = observeTaskByIdUseCase(taskId)
+    suspend fun saveTask(task: Task): Result<Task> = saveTaskUseCase(task)
     suspend fun getTaskStatistics() = getTaskStatisticsUseCase()
-    
-    // Additional methods for ViewModels
-    fun getTasksForUser(userId: String): Flow<Result<List<Task>>> {
-        return observeTasksUseCase().map { tasks ->
-            Result.Success(tasks.filter { it.userId == userId })
-        }
-    }
-    
-    fun getTaskById(taskId: Int): Flow<Result<Task?>> {
-        return observeTasksUseCase().map { tasks ->
-            Result.Success(tasks.find { it.taskId == taskId })
-        }
-    }
-    
-    suspend fun saveTask(task: Task): Result<Task> {
-        return if (task.taskId == 0) {
-            createTaskUseCase(task)
-        } else {
-            updateTaskUseCase(task)
-        }
-    }
 }
