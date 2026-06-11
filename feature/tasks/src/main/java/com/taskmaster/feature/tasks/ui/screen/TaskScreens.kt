@@ -5,6 +5,7 @@
 package com.taskmaster.feature.tasks.ui.screen
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,13 +17,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
@@ -57,8 +64,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.taskmaster.core.domain.model.Task
+import com.taskmaster.core.domain.model.TaskPriority
 import com.taskmaster.coreui.theme.TaskMasterTheme
 import com.taskmaster.feature.tasks.ui.viewmodel.CreateEditTaskViewModel
+import com.taskmaster.feature.tasks.ui.viewmodel.TaskCompletionFilter
 import com.taskmaster.feature.tasks.ui.viewmodel.TaskDetailViewModel
 import com.taskmaster.feature.tasks.ui.viewmodel.TaskListViewModel
 import com.taskmaster.shared.utils.ColorUtils
@@ -77,6 +86,9 @@ fun TaskListScreen(
     viewModel: TaskListViewModel = hiltViewModel()
 ) {
     val tasks by viewModel.tasks.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val priorityFilter by viewModel.priorityFilter.collectAsState()
+    val completionFilter by viewModel.completionFilter.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
@@ -114,16 +126,106 @@ fun TaskListScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp)
         ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = viewModel::onSearchQueryChange,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("Search tasks") },
+                leadingIcon = {
+                    Icon(Icons.Default.Search, contentDescription = "Search")
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                            Icon(Icons.Default.Clear, contentDescription = "Clear search")
+                        }
+                    }
+                },
+                singleLine = true
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = completionFilter == TaskCompletionFilter.ALL,
+                    onClick = { viewModel.onCompletionFilterChange(TaskCompletionFilter.ALL) },
+                    label = { Text("All") }
+                )
+                FilterChip(
+                    selected = completionFilter == TaskCompletionFilter.PENDING,
+                    onClick = { viewModel.onCompletionFilterChange(TaskCompletionFilter.PENDING) },
+                    label = { Text("Pending") }
+                )
+                FilterChip(
+                    selected = completionFilter == TaskCompletionFilter.COMPLETED,
+                    onClick = { viewModel.onCompletionFilterChange(TaskCompletionFilter.COMPLETED) },
+                    label = { Text("Completed") }
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = priorityFilter == null,
+                    onClick = { viewModel.onPriorityFilterChange(null) },
+                    label = { Text("Any priority") }
+                )
+                TaskPriority.entries.forEach { priority ->
+                    FilterChip(
+                        selected = priorityFilter == priority,
+                        onClick = {
+                            viewModel.onPriorityFilterChange(
+                                if (priorityFilter == priority) null else priority
+                            )
+                        },
+                        label = { Text(priority.name.lowercase().replaceFirstChar { it.titlecase() }) }
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(12.dp))
+
             if (isLoading) {
-                CircularProgressIndicator()
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             } else if (error != null) {
-                Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text("Error: $error", color = MaterialTheme.colorScheme.error)
+                }
             } else if (tasks.isEmpty()) {
-                Text("No tasks found. Click the '+' button to add one!")
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        if (searchQuery.isNotBlank() || priorityFilter != null || completionFilter != TaskCompletionFilter.ALL) {
+                            "No tasks match your filters."
+                        } else {
+                            "No tasks found. Click the '+' button to add one!"
+                        }
+                    )
+                }
             } else {
                 Text(
                     text = StringUtils.formatTaskCount(tasks.size),
@@ -136,7 +238,8 @@ fun TaskListScreen(
                     items(tasks) { task ->
                         TaskItem(
                             task = task,
-                            onTaskClick = { onNavigateToTaskDetail(task.taskId) }
+                            onTaskClick = { onNavigateToTaskDetail(task.taskId) },
+                            onToggleComplete = { viewModel.toggleTaskCompletion(task) }
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -147,14 +250,16 @@ fun TaskListScreen(
 }
 
 @Composable
-fun TaskItem(task: Task, onTaskClick: (Task) -> Unit) {
+fun TaskItem(
+    task: Task,
+    onTaskClick: (Task) -> Unit,
+    onToggleComplete: (Task) -> Unit = {}
+) {
     val isOverdue = !task.isCompleted && task.dueDate?.let { DateUtils.isOverdue(it) } == true
     val priorityColor = Color(android.graphics.Color.parseColor(ColorUtils.getPriorityColor(task.priority)))
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onTaskClick(task) },
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = if (isOverdue) {
                 MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.35f)
@@ -169,10 +274,16 @@ fun TaskItem(task: Task, onTaskClick: (Task) -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                Checkbox(
+                    checked = task.isCompleted,
+                    onCheckedChange = { onToggleComplete(task) }
+                )
                 Text(
                     text = task.title,
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onTaskClick(task) }
                 )
                 AssistChip(
                     onClick = {},
@@ -216,14 +327,47 @@ fun TaskDetailScreen(
     taskId: Int,
     onNavigateBack: () -> Unit,
     onNavigateToEditTask: (Int) -> Unit,
+    onTaskDeleted: () -> Unit = onNavigateBack,
     viewModel: TaskDetailViewModel = hiltViewModel()
 ) {
     val task by viewModel.task.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(taskId) {
         viewModel.loadTask(taskId)
+    }
+
+    LaunchedEffect(viewModel.taskDeleted) {
+        viewModel.taskDeleted.collect { deleted ->
+            if (deleted) {
+                onTaskDeleted()
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("Delete task?") },
+            text = { Text("This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteTask(taskId)
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -278,11 +422,34 @@ fun TaskDetailScreen(
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = currentTask.isCompleted,
+                                onCheckedChange = { viewModel.toggleCompletion() }
+                            )
+                            Text(
+                                text = if (currentTask.isCompleted) "Mark as pending" else "Mark as completed"
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
                         Button(
                             onClick = { onNavigateToEditTask(currentTask.taskId) },
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("Edit Task")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { showDeleteDialog = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text("Delete Task")
                         }
                     }
                 }
