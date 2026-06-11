@@ -7,12 +7,14 @@ package com.taskmaster.feature.auth.ui.navigation
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.composable
+import com.taskmaster.feature.auth.ui.screen.ForgotPasswordScreen
 import com.taskmaster.feature.auth.ui.screen.LoginScreen
 import com.taskmaster.feature.auth.ui.screen.RegisterScreen
 
 object AuthRoutes {
     const val LOGIN = "login"
     const val REGISTER = "register"
+    const val FORGOT_PASSWORD = "forgot_password"
 }
 
 fun NavGraphBuilder.authNavGraph(
@@ -24,6 +26,17 @@ fun NavGraphBuilder.authNavGraph(
             onLoginSuccess = onAuthenticated,
             onNavigateToRegister = {
                 navController.navigate(AuthRoutes.REGISTER)
+            },
+            onNavigateToForgotPassword = {
+                navController.navigate(AuthRoutes.FORGOT_PASSWORD)
+            }
+        )
+    }
+
+    composable(AuthRoutes.FORGOT_PASSWORD) {
+        ForgotPasswordScreen(
+            onNavigateBack = {
+                navController.popBackStack()
             }
         )
     }

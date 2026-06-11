@@ -123,3 +123,50 @@ class RegisterViewModel @Inject constructor(
         }
     }
 }
+
+@HiltViewModel
+class ForgotPasswordViewModel @Inject constructor(
+    private val authUseCases: AuthUseCases
+) : ViewModel() {
+
+    private val _email = MutableStateFlow("")
+    val email = _email.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading = _isLoading.asStateFlow()
+
+    private val _error = MutableStateFlow<String?>(null)
+    val error = _error.asStateFlow()
+
+    private val _successMessage = MutableStateFlow<String?>(null)
+    val successMessage = _successMessage.asStateFlow()
+
+    fun onEmailChange(newEmail: String) {
+        _email.value = newEmail
+        _error.value = null
+        _successMessage.value = null
+    }
+
+    fun submit() {
+        if (email.value.isBlank()) {
+            _error.value = "Email cannot be empty"
+            return
+        }
+
+        _isLoading.value = true
+        _error.value = null
+        _successMessage.value = null
+        viewModelScope.launch {
+            when (val result = authUseCases.forgotPassword(email.value)) {
+                is Result.Success -> {
+                    _successMessage.value = "Reset link sent. Check your email."
+                }
+                is Result.Error -> {
+                    _error.value = result.message
+                }
+                is Result.Loading -> Unit
+            }
+            _isLoading.value = false
+        }
+    }
+}
