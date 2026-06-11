@@ -46,6 +46,9 @@ fun NavGraphBuilder.tasksNavGraph(
             },
             onNavigateToEditTask = { id ->
                 navController.navigate(TaskRoutes.editTask(id))
+            },
+            onTaskDeleted = {
+                navController.popBackStack()
             }
         )
     }
