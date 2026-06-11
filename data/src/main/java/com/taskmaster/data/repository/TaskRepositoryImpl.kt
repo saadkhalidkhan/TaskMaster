@@ -36,7 +36,9 @@ class TaskRepositoryImpl @Inject constructor(
         return try {
             val response = taskMasterApi.getTasks(page, pageSize)
             if (response.success) {
-                Result.Success(response.data?.data ?: emptyList())
+                val tasks = response.data?.data ?: emptyList()
+                tasks.forEach { taskDao.insertTask(it.toEntity()) }
+                Result.Success(tasks)
             } else {
                 Result.Error(response.message ?: "Failed to fetch tasks")
             }
@@ -113,13 +115,13 @@ class TaskRepositoryImpl @Inject constructor(
         return try {
             val response = taskMasterApi.deleteTask(id)
             if (response.success) {
-                taskDao.deleteTask(TaskEntity(taskId = id.toInt(), userId = "", title = ""))
+                taskDao.deleteTaskById(id.toInt())
                 Result.Success(Unit)
             } else {
                 Result.Error(response.message ?: "Failed to delete task")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            deleteTaskLocally(id)
         }
     }
 
@@ -132,7 +134,7 @@ class TaskRepositoryImpl @Inject constructor(
                 Result.Error(response.message ?: "Failed to fetch tasks by status")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            getLocalTasksByStatusOrError(status, e.message ?: "Network error")
         }
     }
 
@@ -158,7 +160,7 @@ class TaskRepositoryImpl @Inject constructor(
                 Result.Error(response.message ?: "Failed to fetch tasks by priority")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            getLocalTasksByPriorityOrError(priority, e.message ?: "Network error")
         }
     }
 
@@ -171,7 +173,7 @@ class TaskRepositoryImpl @Inject constructor(
                 Result.Error(response.message ?: "Failed to search tasks")
             }
         } catch (e: Exception) {
-            Result.Error(e.message ?: "Network error")
+            getLocalSearchTasksOrError(query, e.message ?: "Network error")
         }
     }
 
@@ -192,6 +194,12 @@ class TaskRepositoryImpl @Inject constructor(
         val userId = tokenManager.getUserId() ?: return flowOf(emptyList())
         return taskDao.getTasksForUser(userId).map { entities ->
             entities.map { it.toDomain() }
+        }
+    }
+
+    override fun observeTaskById(taskId: Int): Flow<Task?> {
+        return taskDao.getTaskById(taskId).map { entity ->
+            entity?.toDomain()
         }
     }
 
@@ -242,6 +250,45 @@ class TaskRepositoryImpl @Inject constructor(
             Result.Success(task)
         } catch (e: Exception) {
             Result.Error(e.message ?: "Failed to update task locally")
+        }
+    }
+
+    private suspend fun deleteTaskLocally(id: String): Result<Unit> {
+        return try {
+            taskDao.deleteTaskById(id.toInt())
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e.message ?: "Failed to delete task locally")
+        }
+    }
+
+    private suspend fun getLocalSearchTasksOrError(query: String, message: String): Result<List<Task>> {
+        val userId = tokenManager.getUserId() ?: return Result.Error(message)
+        return try {
+            val tasks = taskDao.searchTasksLocal(userId, query).map { it.toDomain() }
+            Result.Success(tasks)
+        } catch (e: Exception) {
+            Result.Error(message)
+        }
+    }
+
+    private suspend fun getLocalTasksByStatusOrError(status: TaskStatus, message: String): Result<List<Task>> {
+        val userId = tokenManager.getUserId() ?: return Result.Error(message)
+        return try {
+            val tasks = taskDao.getTasksByStatusLocal(userId, status.name).map { it.toDomain() }
+            Result.Success(tasks)
+        } catch (e: Exception) {
+            Result.Error(message)
+        }
+    }
+
+    private suspend fun getLocalTasksByPriorityOrError(priority: TaskPriority, message: String): Result<List<Task>> {
+        val userId = tokenManager.getUserId() ?: return Result.Error(message)
+        return try {
+            val tasks = taskDao.getTasksByPriorityLocal(userId, priority.name).map { it.toDomain() }
+            Result.Success(tasks)
+        } catch (e: Exception) {
+            Result.Error(message)
         }
     }
 }

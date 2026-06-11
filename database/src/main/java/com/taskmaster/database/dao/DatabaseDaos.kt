@@ -51,4 +51,20 @@ interface TaskDao {
 
     @Delete
     suspend fun deleteTask(task: TaskEntity)
+
+    @Query("DELETE FROM tasks WHERE taskId = :taskId")
+    suspend fun deleteTaskById(taskId: Int)
+
+    @Query(
+        "SELECT * FROM tasks WHERE userId = :userId AND " +
+            "(title LIKE '%' || :query || '%' OR IFNULL(description, '') LIKE '%' || :query || '%') " +
+            "ORDER BY dueDate ASC"
+    )
+    suspend fun searchTasksLocal(userId: String, query: String): List<TaskEntity>
+
+    @Query("SELECT * FROM tasks WHERE userId = :userId AND status = :status ORDER BY dueDate ASC")
+    suspend fun getTasksByStatusLocal(userId: String, status: String): List<TaskEntity>
+
+    @Query("SELECT * FROM tasks WHERE userId = :userId AND priority = :priority ORDER BY dueDate ASC")
+    suspend fun getTasksByPriorityLocal(userId: String, priority: String): List<TaskEntity>
 }

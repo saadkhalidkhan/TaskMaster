@@ -23,5 +23,6 @@ interface TaskRepository {
     suspend fun searchTasks(query: String): Result<List<Task>>
     suspend fun getTasksByDateRange(startDate: Long, endDate: Long): Result<List<Task>>
     fun observeTasks(): Flow<List<Task>>
+    fun observeTaskById(taskId: Int): Flow<Task?>
     suspend fun getTaskStatistics(): Result<Map<String, Int>>
 }

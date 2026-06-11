@@ -100,9 +100,7 @@ class ObserveTaskByIdUseCase @Inject constructor(
     private val taskRepository: TaskRepository
 ) {
     operator fun invoke(taskId: Int): Flow<Task?> =
-        taskRepository.observeTasks().map { tasks ->
-            tasks.find { it.taskId == taskId }
-        }
+        taskRepository.observeTaskById(taskId)
 }
 
 class SaveTaskUseCase @Inject constructor(
